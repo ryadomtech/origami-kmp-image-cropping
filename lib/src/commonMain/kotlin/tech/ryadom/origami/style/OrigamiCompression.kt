@@ -16,6 +16,8 @@
 
 package tech.ryadom.origami.style
 
+import kotlinx.serialization.Serializable
+
 /**
  * Origami compression options
  * @property maxSize max size of image in bytes. [Unlimited] (original size) by default.
@@ -24,6 +26,7 @@ package tech.ryadom.origami.style
  * @property qualityDowngradeStep we will downgrade [startQuality] by this step on every iteration.
  * So, number of compress iterations ≈ [startQuality] / [qualityDowngradeStep]
  */
+@Serializable
 data class OrigamiCompression(
     val maxSize: Long = Unlimited,
     val startQuality: Int = 90,

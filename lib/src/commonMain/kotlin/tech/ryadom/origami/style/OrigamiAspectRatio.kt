@@ -16,12 +16,14 @@
 
 package tech.ryadom.origami.style
 
+import kotlinx.serialization.Serializable
 
 /**
  * Aspect ratio for [OrigamiCropArea]
  * @param isVariable pass true if you want the user to be able to change the ratio using gestures
  * @param aspectRatio fixed aspect ratio if [isVariable] is false, else initial aspect ratio
  */
+@Serializable
 data class OrigamiAspectRatio(
     val isVariable: Boolean = false,
     val aspectRatio: Float = 1f

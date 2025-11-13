@@ -36,11 +36,8 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "OrigamiSample.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static = (static ?: mutableListOf()).apply {
-                        // Serve sources to debug inside browser
-                        add(rootDirPath)
-                        add(projectDirPath)
-                    }
+                    static(rootDirPath)
+                    static(projectDirPath)
                 }
             }
         }
@@ -50,7 +47,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation("androidx.activity:activity-compose:1.10.1")
+            implementation("androidx.activity:activity-compose:1.11.0")
         }
 
         commonMain.dependencies {
@@ -62,7 +59,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.components.resources)
 
-            implementation("co.touchlab:kermit:2.0.4")
+            implementation("co.touchlab:kermit:2.0.8")
         }
 
         named("desktopMain") {
@@ -81,8 +78,8 @@ android {
         applicationId = "tech.ryadom.origami.sample"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 101
+        versionName = "1.0.1"
     }
 
     packaging {
@@ -105,7 +102,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "tech.ryadom.origami.sample"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
         }
     }
 }

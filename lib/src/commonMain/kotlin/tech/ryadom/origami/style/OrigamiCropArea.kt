@@ -18,6 +18,7 @@ package tech.ryadom.origami.style
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.serialization.Serializable
 
 /**
  * Origami crop area.
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
  *
  * @param initialPaddings [OrigamiCropAreaPadding]
  */
+@Serializable
 data class OrigamiCropArea(
     val highlightedShape: OrigamiHighlightedShape = OrigamiHighlightedShape.Default,
     val edges: OrigamiEdges? = OrigamiEdges.Circle(6.dp),

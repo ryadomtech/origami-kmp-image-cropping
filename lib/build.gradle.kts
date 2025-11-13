@@ -77,7 +77,7 @@ mavenPublishing {
     coordinates(
         groupId = "tech.ryadom",
         artifactId = "origami",
-        version = "1.0.0"
+        version = "1.0.1"
     )
 
     pom {

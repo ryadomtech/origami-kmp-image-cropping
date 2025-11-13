@@ -17,7 +17,6 @@ package tech.ryadom.origami.shared
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -30,22 +29,30 @@ import tech.ryadom.origami.style.OrigamiCompression
 import java.io.ByteArrayOutputStream
 import kotlin.math.min
 
-private class AndroidImageCompressor : ImageCompressor {
-    // Prevents potentials OOM
-    override fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap {
-        val maxBitmapSize = when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> 2048
-            else -> 4096
-        }
+private const val MaxBitmapSize = 2048
 
-        if (image.width <= maxBitmapSize && image.height <= maxBitmapSize) {
+private class AndroidImageCompressor : ImageCompressor {
+
+    /**
+     * Scales an [ImageBitmap] down to the maximum supported texture size to prevent
+     * potential OutOfMemoryError (OOM) exceptions when handling large images.
+     *
+     * If the image dimensions are already within the platform limits, the original
+     * [ImageBitmap] is returned without modification. Otherwise, it's scaled down
+     * while maintaining its aspect ratio.
+     *
+     * @param image The [ImageBitmap] to scale.
+     * @return A new, scaled [ImageBitmap], or the original if it's already within limits.
+     */
+    override fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap {
+        if (image.width <= MaxBitmapSize && image.height <= MaxBitmapSize) {
             return image
         }
 
         val bitmap = image.asAndroidBitmap()
         val scale = min(
-            a = maxBitmapSize.toFloat() / bitmap.width,
-            b = maxBitmapSize.toFloat() / bitmap.height
+            a = MaxBitmapSize.toFloat() / bitmap.width,
+            b = MaxBitmapSize.toFloat() / bitmap.height
         )
 
         val newWidth = (bitmap.width * scale).toInt()
