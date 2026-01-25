@@ -2,13 +2,14 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinMultiplatformLibrary)
+    alias(libs.plugins.publishing)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.publishing)
 }
 
 kotlin {
+    jvmToolchain(21)
     jvm("desktop")
 
     js(IR) {
@@ -23,16 +24,10 @@ kotlin {
         binaries.executable()
     }
 
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-                }
-            }
-        }
-
-        publishLibraryVariants("release")
+    androidLibrary {
+        namespace = "tech.ryadom.origami"
+        compileSdk = 36
+        minSdk = 23
     }
 
     listOf(
@@ -41,31 +36,17 @@ kotlin {
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "ComposeApp"
+            baseName = "Origami"
             isStatic = true
         }
     }
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
+            implementation(libs.composeRuntime)
+            implementation(libs.composeFoundation)
+            implementation(libs.composeUi)
         }
-    }
-}
-
-android {
-    namespace = "tech.ryadom.origami"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 23
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
@@ -77,7 +58,7 @@ mavenPublishing {
     coordinates(
         groupId = "tech.ryadom",
         artifactId = "origami",
-        version = "1.0.1"
+        version = "1.1.0"
     )
 
     pom {

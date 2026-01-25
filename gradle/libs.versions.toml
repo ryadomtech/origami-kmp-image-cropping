@@ -1,12 +1,27 @@
 [versions]
-agp = "8.13.1"
-kotlin = "2.2.21"
-compose-multiplatform = "1.9.3"
-publishing = "0.35.0"
+agp = "9.0.0"
+kermit = "2.0.8"
+kotlin = "2.3.0"
+compose-multiplatform = "1.10.0"
+activity-compose = "1.12.2"
+material3 = "1.9.0"
+
+publishing = "0.36.0"
+
+[libraries]
+
+activityCompose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+composeRuntime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "compose-multiplatform" }
+composeFoundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "compose-multiplatform" }
+composeUi = { group = "org.jetbrains.compose.ui", name = "ui", version.ref = "compose-multiplatform" }
+composeResources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "compose-multiplatform" }
+composeMaterial3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "material3" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
-composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+kotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidApplication = { id = "com.android.application", version.ref = "agp" }
 publishing = { id = "com.vanniktech.maven.publish", version.ref = "publishing" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
