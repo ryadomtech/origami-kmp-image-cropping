@@ -24,9 +24,9 @@ kotlin {
         binaries.executable()
     }
 
-    androidLibrary {
+    android {
         namespace = "tech.ryadom.origami"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 23
     }
 

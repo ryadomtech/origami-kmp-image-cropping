@@ -15,9 +15,9 @@ kotlin {
     jvmToolchain(21)
     jvm("desktop")
 
-    androidLibrary {
+    android {
         namespace = "tech.ryadom.origami.sample.common"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 23
 
         packaging {
@@ -25,6 +25,8 @@ kotlin {
                 excludes += "/META-INF/{AL2.0,LGPL2.1}"
             }
         }
+
+        androidResources.enable = true
     }
 
     listOf(
@@ -85,7 +87,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "tech.ryadom.origami.sample.common"
-            packageVersion = "1.0.2"
+            packageVersion = "1.1.0"
         }
     }
 }

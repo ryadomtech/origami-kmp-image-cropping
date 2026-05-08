@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import origami.sample.common.generated.resources.Res
 import origami.sample.common.generated.resources.sample
+import tech.ryadom.origami.Origami
 import tech.ryadom.origami.OrigamiImage
 import tech.ryadom.origami.style.OrigamiAspectRatio
 import tech.ryadom.origami.style.OrigamiCropArea
@@ -91,7 +92,7 @@ fun SampleApp() {
     val painter = painterResource(Res.drawable.sample)
     val scope = rememberCoroutineScope()
 
-    val origami = _root_ide_package_.tech.ryadom.origami.Origami(
+    val origami = Origami(
         imageBitmap = painter.toImageBitmap(
             density = LocalDensity.current,
             layoutDirection = LocalLayoutDirection.current
