@@ -19,13 +19,31 @@ package tech.ryadom.origami.shared
 import androidx.compose.ui.graphics.ImageBitmap
 import tech.ryadom.origami.style.OrigamiCompression
 
-interface ImageCompressor {
+/**
+ * Platform hook for keeping bitmaps within platform limits and re-encoding a cropped result
+ * down to a size budget.
+ */
+public interface ImageCompressor {
 
-    fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap
+    /**
+     * Scales [image] down to the largest size the platform can hold safely, or returns it
+     * untouched when it already fits.
+     */
+    public fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap
 
-    suspend fun compress(image: ImageBitmap, compression: OrigamiCompression): ImageBitmap
+    /**
+     * Re-encodes [image] until it fits [OrigamiCompression.maxSize], lowering the quality one
+     * [OrigamiCompression.qualityDowngradeStep] at a time.
+     *
+     * Runs off the main thread and honours cancellation. The round trip is lossy and drops the
+     * alpha channel.
+     */
+    public suspend fun compress(image: ImageBitmap, compression: OrigamiCompression): ImageBitmap
 
-    class Original : ImageCompressor {
+    /**
+     * Pass-through implementation.
+     */
+    public class Original : ImageCompressor {
         override fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap {
             return image
         }
@@ -39,4 +57,4 @@ interface ImageCompressor {
     }
 }
 
-expect fun createImageCompressor(): ImageCompressor
+public expect fun createImageCompressor(): ImageCompressor

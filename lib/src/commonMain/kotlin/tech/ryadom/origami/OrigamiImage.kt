@@ -16,108 +16,128 @@
 
 package tech.ryadom.origami
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalDensity
+import tech.ryadom.origami.internal.OrigamiOverlayCache
 import tech.ryadom.origami.style.OrigamiCropArea
 
 /**
- * Composable for origami cropping component
+ * Composable for the origami cropping component.
+ *
  * @param modifier [Modifier]
- * @param origami [Origami] instance to hold and manage component state
+ * @param origami [Origami] instance to hold and manage component state. Keep it across
+ * recompositions with [rememberOrigami] or `remember`.
  */
 @Composable
-fun OrigamiImage(
+public fun OrigamiImage(
     modifier: Modifier = Modifier,
     origami: Origami
 ) {
-    // State of crop rect.
-    val origamiCropRect by origami.cropRect
+    val density = LocalDensity.current
+    remember(origami, density) { origami.onDensityChanged(density) }
+
+    val overlayCache = remember(origami) {
+        OrigamiOverlayCache(origami.cropArea.highlightedShape)
+    }
 
     Box(modifier = modifier) {
-        // Draw image source
-        origami.source.Content(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .onGloballyPositioned {
-                    origami.onGloballyPositioned(
-                        size = it.size,
-                        topLeft = it.positionInParent()
-                    )
-                }
-        )
+        val sourceModifier = Modifier
+            .align(Alignment.Center)
+            .onGloballyPositioned {
+                origami.onGloballyPositioned(
+                    topLeft = it.positionInParent(),
+                    size = it.size
+                )
+            }
 
-        Box(
+        // Rotations and flips are baked into a bitmap that has to be drawn here; until then
+        // the source renders through its own Content.
+        val transformed = origami.transformedBitmap
+        if (transformed != null) {
+            Image(
+                modifier = sourceModifier,
+                bitmap = transformed,
+                contentDescription = null
+            )
+        } else {
+            origami.source.Content(sourceModifier)
+        }
+
+        Spacer(
             modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
+                .matchParentSize()
+                .pointerInput(origami) {
                     detectDragGestures(
-                        onDragStart = { touchPoint ->
-                            origami.onDragStart(touchPoint)
-                        },
+                        onDragStart = origami::onDragStart,
                         onDrag = { pointerInputChange, _ ->
                             pointerInputChange.consume()
-
-                            val dragPoint = pointerInputChange.position
-                            origami.onDrag(dragPoint)
+                            origami.onDrag(pointerInputChange.position)
                         },
-                        onDragEnd = {
-                            origami.onDragEnd()
-                        }
+                        onDragEnd = origami::onDragEnd,
+                        onDragCancel = origami::onDragEnd
                     )
                 }
-                .drawWithCache {
-                    onDrawBehind {
-                        clipPath(
-                            path = origami.cropArea.highlightedShape.getPath(origamiCropRect),
-                            clipOp = ClipOp.Difference
-                        ) {
-                            drawRect(
-                                brush = SolidColor(origami.colors.backgroundColor)
-                            )
-                        }
-
-                        // Draw crop area
-                        drawCropArea(
-                            guidelinesColor = origami.colors.guidelinesColor,
-                            guidelinesWidth = origami.cropArea.guidelinesWidth,
-                            guidelinesCount = origami.cropArea.guidelinesCount,
-                            origamiCropRect = origamiCropRect
-                        )
-
-                        // Draw edges if necessary
-                        origami.cropArea.edges?.onDraw(
-                            scope = this,
-                            rect = origamiCropRect,
-                            colors = origami.colors
-                        )
-                    }
+                // Reading the crop rect here keeps the snapshot observation in the draw phase,
+                // so a drag repaints without recomposing.
+                .drawBehind {
+                    drawOverlay(origami, overlayCache)
                 }
         )
     }
 }
 
 /**
+ * Draws the dimmed background, the crop area and its edges.
+ */
+private fun DrawScope.drawOverlay(origami: Origami, cache: OrigamiOverlayCache) {
+    val cropRect = origami.cropRect
+    if (cropRect.width <= 0f || cropRect.height <= 0f) {
+        return
+    }
+
+    clipPath(
+        path = cache.pathFor(cropRect),
+        clipOp = ClipOp.Difference
+    ) {
+        drawRect(color = origami.colors.backgroundColor)
+    }
+
+    drawCropArea(
+        guidelinesColor = origami.colors.guidelinesColor,
+        guidelinesWidthPx = cache.guidelinesWidthPx(origami.cropArea.guidelinesWidth, this),
+        guidelinesCount = origami.cropArea.guidelinesCount,
+        origamiCropRect = cropRect,
+        cache = cache
+    )
+
+    origami.cropArea.edges?.onDraw(
+        scope = this,
+        rect = cropRect,
+        colors = origami.colors
+    )
+}
+
+/**
  * Drawing crop area
  * @param guidelinesColor guidelines color
- * @param guidelinesWidth guidelines width
+ * @param guidelinesWidthPx guidelines width, already resolved to pixels
  * @param guidelinesCount guidelines count
  * @param origamiCropRect [Rect]
  *
@@ -125,27 +145,31 @@ fun OrigamiImage(
  */
 private fun DrawScope.drawCropArea(
     guidelinesColor: Color,
-    guidelinesWidth: Dp,
+    guidelinesWidthPx: Float,
     guidelinesCount: Int,
-    origamiCropRect: Rect
-) = with(origamiCropRect) {
-    val guidelinesWidthPx = guidelinesWidth.toPx()
+    origamiCropRect: Rect,
+    cache: OrigamiOverlayCache
+) {
+    // Not drawing an invisible frame or invisible guidelines
+    if (guidelinesWidthPx <= 0f || guidelinesColor == Color.Transparent) {
+        return
+    }
+
     drawRect(
         color = guidelinesColor,
-        topLeft = topLeft,
-        size = size,
-        style = Stroke(width = guidelinesWidthPx)
+        topLeft = origamiCropRect.topLeft,
+        size = origamiCropRect.size,
+        style = cache.strokeOf(guidelinesWidthPx)
     )
 
-    // Not drawing invisible guidelines
-    if (guidelinesWidthPx <= 0 || guidelinesCount <= 0 || guidelinesColor == Color.Transparent) {
-        return@with
+    if (guidelinesCount <= 0) {
+        return
     }
 
     drawGuidelines(
         guidelinesCount = guidelinesCount,
         guidelinesColor = guidelinesColor,
-        guidelinesWidth = guidelinesWidth,
+        guidelinesWidthPx = guidelinesWidthPx,
         origamiCropRect = origamiCropRect
     )
 }
@@ -153,7 +177,7 @@ private fun DrawScope.drawCropArea(
 /**
  * Drawing guidelines inside crop area
  * @param guidelinesColor guidelines color
- * @param guidelinesWidth guidelines width
+ * @param guidelinesWidthPx guidelines width, already resolved to pixels
  * @param guidelinesCount guidelines count
  * @param origamiCropRect [Rect]
  *
@@ -163,29 +187,29 @@ private fun DrawScope.drawCropArea(
 private fun DrawScope.drawGuidelines(
     guidelinesCount: Int,
     guidelinesColor: Color,
-    guidelinesWidth: Dp,
+    guidelinesWidthPx: Float,
     origamiCropRect: Rect
 ) = with(origamiCropRect) {
-    val strokeWidth = guidelinesWidth.toPx()
-
     val verticalStep = size.height / (guidelinesCount + 1)
     val horizontalStep = size.width / (guidelinesCount + 1)
 
     repeat(guidelinesCount) { index ->
         val lineIndex = index + 1
 
+        val x = topLeft.x + horizontalStep * lineIndex
         drawLine(
             color = guidelinesColor,
-            start = Offset(topLeft.x + horizontalStep * lineIndex, topLeft.y),
-            end = Offset(topLeft.x + horizontalStep * lineIndex, topLeft.y + size.height),
-            strokeWidth = strokeWidth
+            start = Offset(x, topLeft.y),
+            end = Offset(x, topLeft.y + size.height),
+            strokeWidth = guidelinesWidthPx
         )
 
+        val y = topLeft.y + verticalStep * lineIndex
         drawLine(
             color = guidelinesColor,
-            start = Offset(topLeft.x, topLeft.y + verticalStep * lineIndex),
-            end = Offset(topLeft.x + size.width, topLeft.y + verticalStep * lineIndex),
-            strokeWidth = strokeWidth
+            start = Offset(topLeft.x, y),
+            end = Offset(topLeft.x + size.width, y),
+            strokeWidth = guidelinesWidthPx
         )
     }
 }

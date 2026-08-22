@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -9,25 +10,37 @@ plugins {
 }
 
 kotlin {
+    // Required: the manual dependsOn below otherwise opts this project out of the default
+    // hierarchy and appleMain stops existing.
+    applyDefaultHierarchyTemplate()
+
+    explicitApi()
+
     jvmToolchain(21)
     jvm("desktop")
 
-    js(IR) {
+    js {
         nodejs()
         browser()
-        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        nodejs()
-        binaries.executable()
+        // Node cannot fetch skiko's .wasm binary, so the wasm tests run in a browser.
+        nodejs {
+            testTask {
+                enabled = false
+            }
+        }
+        browser()
     }
 
     android {
         namespace = "tech.ryadom.origami"
         compileSdk = 37
         minSdk = 23
+
+        withHostTest {}
     }
 
     listOf(
@@ -42,10 +55,36 @@ kotlin {
     }
 
     sourceSets {
+        // Desktop, Apple, JS and Wasm all render through skiko and share one image compressor.
+        val skikoMain by creating {
+            dependsOn(commonMain.get())
+        }
+
+        // configureEach, not named(): appleMain is materialized after this block runs.
+        val skikoTargets = setOf("desktopMain", "appleMain", "jsMain", "wasmJsMain")
+        configureEach {
+            if (name in skikoTargets) {
+                dependsOn(skikoMain)
+            }
+        }
+
         commonMain.dependencies {
-            implementation(libs.composeRuntime)
-            implementation(libs.composeFoundation)
-            implementation(libs.composeUi)
+            api(libs.composeRuntime)
+            api(libs.composeFoundation)
+            api(libs.composeUi)
+            api(libs.composeRuntimeSaveable)
+
+            implementation(libs.coroutinesCore)
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.coroutinesTest)
+        }
+
+        // Bitmap level tests need the real Skia backend of the desktop target.
+        named("desktopTest").dependencies {
+            implementation(compose.desktop.currentOs)
         }
     }
 }
@@ -58,7 +97,7 @@ mavenPublishing {
     coordinates(
         groupId = "tech.ryadom",
         artifactId = "origami",
-        version = "1.1.0"
+        version = "2.0.0"
     )
 
     pom {

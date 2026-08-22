@@ -16,21 +16,45 @@
 
 package tech.ryadom.origami.style
 
-import kotlinx.serialization.Serializable
-
 /**
  * Origami compression options
- * @property maxSize max size of image in bytes. [Unlimited] (original size) by default.
- * @property startQuality the quality from which we will start trying to compress
- * the image until its size is greater than [maxSize]
- * @property qualityDowngradeStep we will downgrade [startQuality] by this step on every iteration.
- * So, number of compress iterations ≈ [startQuality] / [qualityDowngradeStep]
+ *
+ * @property maxSize max size of the encoded image in bytes. Unlimited (original size) by default.
+ * @property startQuality the quality, in `1..100`, from which we will start trying to compress
+ * the image until its size is not greater than [maxSize]
+ * @property qualityDowngradeStep we will downgrade [startQuality] by this step on every
+ * iteration. So, the number of compress iterations is at most
+ * [startQuality] / [qualityDowngradeStep].
  */
-@Serializable
-data class OrigamiCompression(
-    val maxSize: Long = Unlimited,
+public data class OrigamiCompression(
+    val maxSize: Long = UNLIMITED,
     val startQuality: Int = 90,
     val qualityDowngradeStep: Int = 10
-)
+) {
 
-private const val Unlimited = Long.MAX_VALUE
+    init {
+        require(maxSize > 0L) {
+            "maxSize must be positive, was $maxSize"
+        }
+
+        require(startQuality in MIN_QUALITY..MAX_QUALITY) {
+            "startQuality must be in $MIN_QUALITY..$MAX_QUALITY, was $startQuality"
+        }
+
+        require(qualityDowngradeStep in 1..MAX_QUALITY) {
+            "qualityDowngradeStep must be in 1..$MAX_QUALITY, was $qualityDowngradeStep"
+        }
+    }
+
+    public companion object {
+
+        /**
+         * Do not constrain the encoded size.
+         */
+        public const val UNLIMITED: Long = Long.MAX_VALUE
+
+        internal const val MIN_QUALITY: Int = 1
+
+        internal const val MAX_QUALITY: Int = 100
+    }
+}

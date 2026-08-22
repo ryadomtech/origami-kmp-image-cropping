@@ -25,19 +25,22 @@ import tech.ryadom.origami.Origami
 /**
  * [Origami] image source
  */
-interface OrigamiSource {
+public interface OrigamiSource {
 
     /**
      * Composable content for displaying source
      * @param modifier [Modifier]
      */
     @Composable
-    fun Content(modifier: Modifier)
+    public fun Content(modifier: Modifier)
 
     /**
-     * Transform your source to [ImageBitmap]
+     * Transform your source to [ImageBitmap].
+     *
+     * Called lazily. The result is expected to match what [Content] draws, since [Origami.crop]
+     * maps the on screen crop area onto this bitmap.
      */
-    fun getImageBitmap(): ImageBitmap
+    public fun getImageBitmap(): ImageBitmap
 }
 
 /**

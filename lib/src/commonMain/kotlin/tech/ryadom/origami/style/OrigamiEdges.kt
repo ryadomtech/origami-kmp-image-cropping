@@ -23,12 +23,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.util.fastForEach
 
 /**
  * Origami edges
  */
-fun interface OrigamiEdges {
+public fun interface OrigamiEdges {
 
     /**
      * Callback for drawing
@@ -36,39 +35,25 @@ fun interface OrigamiEdges {
      * @param rect current [Rect] of [OrigamiCropArea]
      * @param colors current [OrigamiColors]
      */
-    fun onDraw(scope: DrawScope, rect: Rect, colors: OrigamiColors)
+    public fun onDraw(scope: DrawScope, rect: Rect, colors: OrigamiColors)
 
     /**
      * Circle edges shape
      *
      * @param radius radius of the circle
      */
-    class Circle(
+    public class Circle(
         private val radius: Dp
     ) : OrigamiEdges {
         override fun onDraw(scope: DrawScope, rect: Rect, colors: OrigamiColors) {
             with(scope) {
-                val edges = listOf(
-                    rect.topLeft,
-                    Offset(
-                        x = rect.topLeft.x + rect.size.width,
-                        y = rect.topLeft.y
-                    ),
-                    Offset(
-                        x = rect.topLeft.x,
-                        y = rect.topLeft.y + rect.size.height
-                    ),
-                    Offset(
-                        x = rect.topLeft.x + rect.size.width,
-                        y = rect.topLeft.y + rect.size.height
-                    )
-                )
+                val radiusPx = radius.toPx()
 
-                edges.fastForEach { center ->
+                rect.forEachCorner { x, y ->
                     drawCircle(
                         color = colors.edgesColor,
-                        center = center,
-                        radius = radius.toPx()
+                        center = Offset(x, y),
+                        radius = radiusPx
                     )
                 }
             }
@@ -80,47 +65,43 @@ fun interface OrigamiEdges {
      * @param size width and height of rectangle
      * @param cornerRadius rectangle corner's radius
      */
-    class Rectangle(
+    public class Rectangle(
         private val size: DpSize,
         private val cornerRadius: Dp
     ) : OrigamiEdges {
         override fun onDraw(scope: DrawScope, rect: Rect, colors: OrigamiColors) {
             with(scope) {
-                val height = this@Rectangle.size.height.toPx()
-                val width = this@Rectangle.size.width.toPx()
-
-                val halfOfWidth = width / 2
-                val edges = listOf(
-                    Offset(
-                        x = rect.topLeft.x - halfOfWidth,
-                        y = rect.topLeft.y - halfOfWidth
-                    ),
-                    Offset(
-                        x = rect.topLeft.x + rect.size.width - halfOfWidth,
-                        y = rect.topLeft.y - halfOfWidth
-                    ),
-                    Offset(
-                        x = rect.topLeft.x - halfOfWidth,
-                        y = rect.topLeft.y + rect.size.height - halfOfWidth
-                    ),
-                    Offset(
-                        x = rect.topLeft.x + rect.size.width - halfOfWidth,
-                        y = rect.topLeft.y + rect.size.height - halfOfWidth
-                    )
+                val handleSize = Size(
+                    width = this@Rectangle.size.width.toPx(),
+                    height = this@Rectangle.size.height.toPx()
                 )
 
-                edges.fastForEach { center ->
+                val radiusPx = cornerRadius.toPx()
+                val radius = CornerRadius(x = radiusPx, y = radiusPx)
+
+                // Each handle is centered on its corner
+                val halfWidth = handleSize.width / 2f
+                val halfHeight = handleSize.height / 2f
+
+                rect.forEachCorner { x, y ->
                     drawRoundRect(
                         color = colors.edgesColor,
-                        topLeft = center,
-                        size = Size(width, height),
-                        cornerRadius = CornerRadius(
-                            x = cornerRadius.toPx(),
-                            y = cornerRadius.toPx()
-                        )
+                        topLeft = Offset(x - halfWidth, y - halfHeight),
+                        size = handleSize,
+                        cornerRadius = radius
                     )
                 }
             }
         }
     }
+}
+
+/**
+ * Visits the four corners of this rect without allocating.
+ */
+private inline fun Rect.forEachCorner(action: (x: Float, y: Float) -> Unit) {
+    action(left, top)
+    action(right, top)
+    action(left, bottom)
+    action(right, bottom)
 }

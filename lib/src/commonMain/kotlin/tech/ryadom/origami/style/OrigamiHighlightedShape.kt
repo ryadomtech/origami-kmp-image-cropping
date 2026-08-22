@@ -26,19 +26,19 @@ import androidx.compose.ui.unit.Dp
 /**
  * Shape of the highlighted space inside crop area
  */
-fun interface OrigamiHighlightedShape {
+public fun interface OrigamiHighlightedShape {
 
     /**
      * Provides path to shape
      * @param rect current [Rect]
      * @return path will be drawn
      */
-    fun getPath(rect: Rect): Path
+    public fun getPath(rect: Rect): Path
 
     /**
      * Default rectangle shape match rect edges
      */
-    object Default : OrigamiHighlightedShape {
+    public object Default : OrigamiHighlightedShape {
         override fun getPath(rect: Rect): Path {
             return Path().apply { addRect(rect) }
         }
@@ -47,7 +47,7 @@ fun interface OrigamiHighlightedShape {
     /**
      * Circle shape match rect edges
      */
-    object Circle : OrigamiHighlightedShape {
+    public object Circle : OrigamiHighlightedShape {
         override fun getPath(rect: Rect): Path {
             return Path().apply { addOval(rect) }
         }
@@ -57,11 +57,11 @@ fun interface OrigamiHighlightedShape {
      * Rounded rectangle shape match rect edges
      * @param cornerRadius corner's radius
      */
-    class RoundedRectangle(
+    public class RoundedRectangle(
         private val cornerRadius: CornerRadius
     ) : OrigamiHighlightedShape {
 
-        constructor(density: Density, cornerRadius: Dp) : this(
+        public constructor(density: Density, cornerRadius: Dp) : this(
             with(density) {
                 CornerRadius(
                     x = cornerRadius.toPx(),
