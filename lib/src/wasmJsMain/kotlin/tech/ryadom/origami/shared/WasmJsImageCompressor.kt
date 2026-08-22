@@ -16,26 +16,11 @@
 
 package tech.ryadom.origami.shared
 
-import androidx.compose.ui.graphics.ImageBitmap
-import tech.ryadom.origami.style.OrigamiCompression
-
-private class WasmJsImageCompressor : ImageCompressor {
-    override fun scaleToPlatformLimits(image: ImageBitmap): ImageBitmap {
-        return image
-    }
-
-    /*
-        May be in future will use https://github.com/fengyuanchen/compressorjs
-        But now seems too heavy for this artefact
-    */
-    override suspend fun compress(
-        image: ImageBitmap,
-        compression: OrigamiCompression
-    ): ImageBitmap {
-        return image
-    }
+/**
+ * Browsers cap canvas dimensions; Safari is the strictest at 4096.
+ */
+public actual fun createImageCompressor(): ImageCompressor {
+    return SkikoImageCompressor(maxDimension = MAX_BITMAP_DIMENSION)
 }
 
-actual fun createImageCompressor(): ImageCompressor {
-    return WasmJsImageCompressor()
-}
+private const val MAX_BITMAP_DIMENSION = 4096

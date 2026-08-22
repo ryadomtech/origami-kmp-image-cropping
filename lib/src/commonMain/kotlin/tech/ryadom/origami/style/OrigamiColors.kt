@@ -25,23 +25,35 @@ import androidx.compose.ui.graphics.Color
  * @property guidelinesColor guidelines [Color]
  * @property edgesColor a [Color] of guideline's edges
  */
-interface OrigamiColors {
-    val backgroundColor: Color
+public interface OrigamiColors {
+    public val backgroundColor: Color
 
-    val guidelinesColor: Color
+    public val guidelinesColor: Color
 
-    val edgesColor: Color
+    public val edgesColor: Color
 
-    companion object {
+    public companion object {
         /**
-         * Default values for [OrigamiColors]
+         * Default values for [OrigamiColors], with any of them overridable:
+         * `OrigamiColors.createDefault(guidelinesColor = Color.White)`
          */
-        fun createDefault() = object : OrigamiColors {
-            override val backgroundColor: Color = Color.Black.copy(alpha = 0.7F)
-
-            override val guidelinesColor: Color = Color.Gray
-
-            override val edgesColor: Color = guidelinesColor
-        }
+        public fun createDefault(
+            backgroundColor: Color = Color.Black.copy(alpha = 0.7F),
+            guidelinesColor: Color = Color.Gray,
+            edgesColor: Color = guidelinesColor
+        ): OrigamiColors = DefaultOrigamiColors(
+            backgroundColor = backgroundColor,
+            guidelinesColor = guidelinesColor,
+            edgesColor = edgesColor
+        )
     }
 }
+
+/**
+ * Value based [OrigamiColors], so two identically configured instances compare equal.
+ */
+private data class DefaultOrigamiColors(
+    override val backgroundColor: Color,
+    override val guidelinesColor: Color,
+    override val edgesColor: Color
+) : OrigamiColors

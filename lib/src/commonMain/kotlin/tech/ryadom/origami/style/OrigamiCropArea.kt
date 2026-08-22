@@ -18,7 +18,6 @@ package tech.ryadom.origami.style
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.serialization.Serializable
 
 /**
  * Origami crop area.
@@ -37,12 +36,37 @@ import kotlinx.serialization.Serializable
  * to hide guidelines
  *
  * @param initialPaddings [OrigamiCropAreaPadding]
+ *
+ * @param minSize smallest side the crop area can be resized to
+ *
+ * @param handleTouchTarget how far from a corner a touch still counts as grabbing that corner.
+ * A touch inside the area but outside every handle moves the area instead.
  */
-@Serializable
-data class OrigamiCropArea(
+public data class OrigamiCropArea(
     val highlightedShape: OrigamiHighlightedShape = OrigamiHighlightedShape.Default,
     val edges: OrigamiEdges? = OrigamiEdges.Circle(6.dp),
     val guidelinesWidth: Dp = 2.dp,
     val guidelinesCount: Int = 2,
-    val initialPaddings: OrigamiCropAreaPadding = OrigamiCropAreaPadding.createDefault()
-)
+    val initialPaddings: OrigamiCropAreaPadding = OrigamiCropAreaPadding.createDefault(),
+    val minSize: Dp = 56.dp,
+    val handleTouchTarget: Dp = 32.dp
+) {
+
+    init {
+        require(guidelinesCount >= 0) {
+            "guidelinesCount cannot be negative, was $guidelinesCount"
+        }
+
+        require(guidelinesWidth.value >= 0f) {
+            "guidelinesWidth cannot be negative, was $guidelinesWidth"
+        }
+
+        require(minSize.value >= 0f) {
+            "minSize cannot be negative, was $minSize"
+        }
+
+        require(handleTouchTarget.value >= 0f) {
+            "handleTouchTarget cannot be negative, was $handleTouchTarget"
+        }
+    }
+}

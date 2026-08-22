@@ -28,29 +28,75 @@ In your shared module's build.gradle.kts add:
 
 ```Gradle Kotlin DSL
 kotlin.sourceSets.commonMain.dependencies {
-  implementation("tech.ryadom:origami:1.1.0")
+  implementation("tech.ryadom:origami:2.0.0")
 }
 ```
 
 ### Usage
 
-To create an `Origami` instance, you need to call any of `Origami` constructors and pass
-source (now supports `ImageBitmap`) and options as arguments.
-Then use the `Origami` object as shown below.
+Create the state holder with `rememberOrigami`, hand it to `OrigamiImage`, and call `crop()`
+when you want the result.
 
 ```Kotlin
-val source = createYourSource()
-val colors = object: OrigamiColors { } // Customize colors
-val cropArea = OrigamiCropArea() // Customize crop area
-val aspectRatio = OrigamiAspectRatio() // Customize aspect ratio
-
-val origami = remember { Origami(source, colors, cropArea, aspectRatio) }
+val origami = rememberOrigami(imageBitmap = myBitmap)
 
 OrigamiImage(origami = origami)
 
 // Returns cropped image
 origami.crop()
 ```
+
+`rememberOrigami` keeps the selection across recompositions **and** across configuration changes
+and process death — the crop area is stored in resolution independent coordinates, so it comes
+back in the right place even if the window changed shape. Pass the bitmap back in yourself; it is
+not saved.
+
+You can also build one by hand, which is what you want for a custom `OrigamiSource`:
+
+```Kotlin
+val source = createYourSource()
+val colors = OrigamiColors.createDefault(guidelinesColor = Color.White)
+val cropArea = OrigamiCropArea()
+val aspectRatio = OrigamiAspectRatio()
+
+val origami = remember { Origami(source, colors, cropArea, aspectRatio) }
+```
+
+> Always keep the instance in `remember`. Constructing an `Origami` inside a composable body
+> throws away the user's selection on every recomposition and re-runs the source scaling.
+
+#### Editing
+
+```Kotlin
+origami.rotateClockwise()        // quarter turns, lossless
+origami.rotateCounterClockwise()
+origami.flipHorizontally()
+origami.flipVertically()
+
+origami.setAspectRatio(OrigamiAspectRatio.Landscape16x9)  // or a preset
+origami.aspectRatio = 3f / 2f                             // or a raw ratio
+origami.aspectRatio = null                                // free form
+
+origami.reset()                  // back to the initial crop area, no transforms
+
+origami.cropRect                 // observable selection, follows the user's drag
+origami.rotationDegrees          // 0, 90, 180 or 270
+```
+
+#### Cropping with a size budget
+
+`crop(OrigamiCompression)` runs off the main thread, honours cancellation, and re-encodes the
+result until it fits:
+
+```Kotlin
+scope.launch {
+    val result = origami.crop(
+        OrigamiCompression(maxSize = 500 * 1024)
+    )
+}
+```
+
+Compression is a lossy JPEG round trip, so it drops the alpha channel.
 
 ### Customization
 
@@ -92,6 +138,21 @@ data class OrigamiCropArea(
 )
 ```
 
+2.5. Minimum crop size and how large the corner handles are to the touch, via `minSize`
+and `handleTouchTarget`. Both are `Dp`, so they hold up across densities.
+
+```Kotlin
+data class OrigamiCropArea(
+    val highlightedShape: OrigamiHighlightedShape = OrigamiHighlightedShape.Default,
+    val edges: OrigamiEdges? = OrigamiEdges.Circle(6.dp),
+    val guidelinesWidth: Dp = 2.dp,
+    val guidelinesCount: Int = 2,
+    val initialPaddings: OrigamiCropAreaPadding = OrigamiCropAreaPadding.createDefault(),
+    val minSize: Dp = 56.dp,
+    val handleTouchTarget: Dp = 32.dp
+)
+```
+
 #### 3. Aspect ratio
 
 With `OrigamiAspectRatio` you can specify any width / height ratio of crop area you need.
@@ -101,6 +162,18 @@ data class OrigamiAspectRatio(
     val isVariable: Boolean = false,
     val aspectRatio: Float = 1f
 )
+```
+
+Presets cover the usual cases:
+
+```Kotlin
+OrigamiAspectRatio.Free            // user reshapes freely, starts covering the whole image
+OrigamiAspectRatio.Square          // 1:1
+OrigamiAspectRatio.Landscape4x3
+OrigamiAspectRatio.Portrait3x4
+OrigamiAspectRatio.Landscape16x9
+OrigamiAspectRatio.Portrait9x16
+OrigamiAspectRatio.of(width = 3, height = 2)
 ```
 
 ### License

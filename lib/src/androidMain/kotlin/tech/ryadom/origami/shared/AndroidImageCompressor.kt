@@ -23,13 +23,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.decodeToImageBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import tech.ryadom.origami.style.OrigamiCompression
 import java.io.ByteArrayOutputStream
 import kotlin.math.min
 
 private const val MaxBitmapSize = 2048
+
+/**
+ * Below this the artefacts cost more than the bytes saved.
+ */
+private const val MinQuality = 10
 
 private class AndroidImageCompressor : ImageCompressor {
 
@@ -74,25 +78,24 @@ private class AndroidImageCompressor : ImageCompressor {
             var quality = compression.startQuality
             var compressed: ByteArray
 
-            ensureActive()
+            while (true) {
+                ensureActive()
 
-            do {
-                ByteArrayOutputStream().use { outputStream ->
+                compressed = ByteArrayOutputStream().use { outputStream ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-                    compressed = outputStream.toByteArray()
-                    quality -= compression.qualityDowngradeStep
+                    outputStream.toByteArray()
                 }
-            } while (
-                compressed.size > compression.maxSize
-                && isActive
-                && quality > 10
-            )
+
+                if (compressed.size <= compression.maxSize || quality <= MinQuality) break
+                quality = (quality - compression.qualityDowngradeStep)
+                    .coerceAtLeast(MinQuality)
+            }
 
             compressed.decodeToImageBitmap()
         }
     }
 }
 
-actual fun createImageCompressor(): ImageCompressor {
+public actual fun createImageCompressor(): ImageCompressor {
     return AndroidImageCompressor()
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,11 +15,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,97 +47,140 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import origami.sample.common.generated.resources.Res
 import origami.sample.common.generated.resources.sample
-import tech.ryadom.origami.Origami
 import tech.ryadom.origami.OrigamiImage
+import tech.ryadom.origami.rememberOrigami
 import tech.ryadom.origami.style.OrigamiAspectRatio
 import tech.ryadom.origami.style.OrigamiCropArea
 import tech.ryadom.origami.style.OrigamiHighlightedShape
 
+private val AspectRatios = listOf(
+    "Free" to OrigamiAspectRatio.Free,
+    "1:1" to OrigamiAspectRatio.Square,
+    "4:3" to OrigamiAspectRatio.Landscape4x3,
+    "3:4" to OrigamiAspectRatio.Portrait3x4,
+    "16:9" to OrigamiAspectRatio.Landscape16x9
+)
+
 @Composable
 fun SampleApp() {
     var croppedImage by remember { mutableStateOf<ImageBitmap?>(null) }
-    if (croppedImage != null) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-                .windowInsetsPadding(
-                    WindowInsets.systemBars
-                ),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = "The result is below!\nClick on image to reset",
-                textAlign = TextAlign.Center
-            )
 
-            Box(
-                modifier = Modifier.size(250.dp)
-                    .padding(top = 24.dp)
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray
-                    )
-                    .clickable {
-                        croppedImage = null
-                    }
-            ) {
-                Image(
-                    modifier = Modifier.align(Alignment.Center)
-                        .background(Color.Yellow),
-                    bitmap = croppedImage!!,
-                    contentDescription = null
-                )
-            }
-        }
-
+    croppedImage?.let { result ->
+        CropResult(result) { croppedImage = null }
         return
     }
 
     val painter = painterResource(Res.drawable.sample)
-    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
 
-    val origami = Origami(
-        imageBitmap = painter.toImageBitmap(
-            density = LocalDensity.current,
-            layoutDirection = LocalLayoutDirection.current
-        ),
-        aspectRatio = OrigamiAspectRatio(false),
+    val source = remember(painter, density, layoutDirection) {
+        painter.toImageBitmap(density, layoutDirection)
+    }
+
+    val origami = rememberOrigami(
+        imageBitmap = source,
         cropArea = OrigamiCropArea(
             highlightedShape = OrigamiHighlightedShape.Circle
         )
     )
 
+    val scope = rememberCoroutineScope()
+    var selectedRatio by remember { mutableStateOf(0) }
+
     Scaffold(
         modifier = Modifier.fillMaxSize()
             .background(Color.Black.copy(0.7f))
-            .windowInsetsPadding(
-                WindowInsets.systemBars
-            ),
+            .windowInsetsPadding(WindowInsets.systemBars),
         bottomBar = {
-            Button(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(
-                        horizontal = 16.dp
-                    ),
-                onClick = {
-                    scope.launch { croppedImage = origami.crop() }
-                },
-                colors = ButtonDefaults.buttonColors()
-                    .copy(
-                        containerColor = Color.Blue
-                    ),
-                shape = RoundedCornerShape(size = 8.dp)
-            ) {
-                Text(text = "Crop")
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AspectRatios.forEachIndexed { index, (label, ratio) ->
+                        FilterChip(
+                            selected = index == selectedRatio,
+                            onClick = {
+                                selectedRatio = index
+                                origami.setAspectRatio(ratio)
+                            },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TextButton(onClick = origami::rotateCounterClockwise) { Text("⟲") }
+                    TextButton(onClick = origami::rotateClockwise) { Text("⟳") }
+                    TextButton(onClick = origami::flipHorizontally) { Text("Flip H") }
+                    TextButton(onClick = origami::flipVertically) { Text("Flip V") }
+                    TextButton(
+                        onClick = {
+                            origami.reset()
+                            selectedRatio = 0
+                        }
+                    ) {
+                        Text("Reset")
+                    }
+                }
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        scope.launch { croppedImage = origami.crop() }
+                    },
+                    colors = ButtonDefaults.buttonColors().copy(containerColor = Color.Blue),
+                    shape = RoundedCornerShape(size = 8.dp)
+                ) {
+                    Text(text = "Crop")
+                }
             }
         }
     ) {
         OrigamiImage(
             origami = origami,
-            modifier = Modifier.fillMaxSize()
-                .padding(it)
+            modifier = Modifier.fillMaxSize().padding(it)
         )
+    }
+}
+
+@Composable
+private fun CropResult(result: ImageBitmap, onReset: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+            .windowInsetsPadding(WindowInsets.systemBars),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = "The result is below!\nClick on image to reset",
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            text = "${result.width} x ${result.height}",
+            textAlign = TextAlign.Center
+        )
+
+        Box(
+            modifier = Modifier.size(250.dp)
+                .padding(top = 24.dp)
+                .border(width = 1.dp, color = Color.LightGray)
+                .clickable(onClick = onReset)
+        ) {
+            Image(
+                modifier = Modifier.align(Alignment.Center)
+                    .background(Color.Yellow),
+                bitmap = result,
+                contentDescription = null
+            )
+        }
     }
 }
 
