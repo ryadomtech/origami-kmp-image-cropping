@@ -1,7 +1,7 @@
 ![image](origami_logo.png)
 # Origami — simple image cropping composable for Kotlin Multiplatform
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-blue.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
 [![Maven Central](https://img.shields.io/maven-central/v/tech.ryadom/origami?color=blue)](https://central.sonatype.com/artifact/tech.ryadom/origami)
 
 ![badge-android](http://img.shields.io/badge/platform-android-6EDB8D.svg?style=flat)
