@@ -10,9 +10,9 @@
 ![badge-js](https://img.shields.io/badge/platform-js-fcba03.svg?style=flat)
 ![badge-wasm](https://img.shields.io/badge/platform-wasm-331f06.svg?style=flat)
 
-![gif](sample.gif)
-
 With this tool you can crop images in Compose Multiplatform.
+
+![gif](sample.gif)
 
 ## Supported targets
 
